@@ -133,11 +133,13 @@ app.use(bodyParser.json());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://campus-hub.pages.dev/",
+    origin: [
+      "https://campus-hub.pages.dev", // Cloudflare Pages
+      "http://localhost:5173"          // Local Vite dev server
+    ],
     methods: ["GET", "POST"],
   },
 });
-
 // ----- In-memory Message Store -----
 let messages = []; // last 500 messages
 const MAX_MESSAGES = 500;
