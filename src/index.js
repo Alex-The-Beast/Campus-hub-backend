@@ -107,6 +107,177 @@
 //   connectDB();
 // });
 
+// import express from "express";
+// import cors from "cors";
+// import bodyParser from "body-parser";
+// import { PORT } from "./config/serverConfig.js";
+// import connectDB from "./config/dbConfig.js";
+// import PYQRoutes from "./routes/PYQRoutes.js";
+// import http from "http";
+// import { Server } from "socket.io";
+// import { Filter } from "bad-words";
+// import { v4 as uuidv4 } from "uuid";
+// import fs from "fs";
+// // import mongoose from "mongoose";
+
+// // Optional: Gemini AI import
+// // import { GeminiClient } from "gemini-ai"; 
+// // const gemini = new GeminiClient({ apiKey: process.env.GEMINI_API_KEY });
+
+// const app = express();
+
+// // Middleware
+// app.use(cors());
+// app.use(bodyParser.json());
+
+// // HTTP + WebSocket server
+// const server = http.createServer(app);
+// const io = new Server(server, {
+//   cors: {
+//     origin: [
+//       "https://campus-hub.pages.dev", // Cloudflare Pages
+//       "http://localhost:5173"          // Local Vite dev server
+//     ],
+//     methods: ["GET", "POST"],
+//   },
+// });
+// // ----- In-memory Message Store -----
+// let messages = []; // last 500 messages
+// const MAX_MESSAGES = 500;
+
+// // Store all connected users
+// const users = new Map();
+
+// // ----- Nickname Generator -----
+// const adjectives = ["Silent", "Smart", "Brave", "Quick", "Clever"];
+// const animals = ["Fox", "Owl", "Tiger", "Wolf", "Eagle"];
+// const generateNickname = () => {
+//   const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+//   const animal = animals[Math.floor(Math.random() * animals.length)];
+//   const num = Math.floor(Math.random() * 1000);
+//   return `${adj}${animal}${num}`;
+// };
+
+// // ----- Chat Moderation -----
+// const filter = new Filter();
+// const logToFile = (data) => {
+//   const log = `[${new Date().toISOString()}] ${data}\n`;
+//   fs.appendFileSync("chat.log", log);
+// };
+
+// // ----- Helper: Broadcast user count -----
+// function broadcastUserCount() {
+//   const count = users.size;
+//   let message;
+//   if (count <= 1) message = "No one else in the room";
+//   else message = `${count} users online`;
+//   io.emit("updateUserCount", message);
+// }
+
+// // ----- WebSocket Handling -----
+// io.on("connection", (socket) => {
+//   // Assign random nickname and initial status
+//   const nickname = generateNickname();
+//   users.set(socket.id, { nickname, typing: false, location: null });
+
+//   logToFile(`User connected: ${nickname} (${socket.id})`);
+//   console.log(`User connected: ${nickname} (${socket.id})`);
+
+//   // Send last messages
+//   socket.emit("chatHistory", messages);
+
+//   // Broadcast user count
+//   broadcastUserCount();
+
+//   // Listen for new messages
+//   socket.on("sendMessage", async (msgText) => {
+//     if (!msgText || msgText.trim().length === 0) return;
+
+//     let cleanText = filter.clean(msgText);
+
+//     // Optional Gemini AI moderation
+//     // const response = await gemini.moderateText(msgText);
+//     // if (response.flagged) cleanText = "[Message removed due to inappropriate content]";
+
+//     const message = {
+//       id: uuidv4(),
+//       user: nickname,
+//       text: cleanText,
+//       timestamp: new Date(),
+//     };
+
+//     messages.push(message);
+//     if (messages.length > MAX_MESSAGES) messages.shift();
+
+//     io.emit("receiveMessage", message);
+//     logToFile(`${nickname}: ${cleanText}`);
+//   });
+
+//   // Typing status
+//   socket.on("typing", () => {
+//     const user = users.get(socket.id);
+//     if (user) {
+//       user.typing = true;
+//       users.set(socket.id, user);
+
+//       const typingUsers = Array.from(users.values())
+//         .filter((u) => u.typing)
+//         .map((u) => u.nickname);
+
+//       io.emit("userTyping", typingUsers);
+
+//       setTimeout(() => {
+//         user.typing = false;
+//         users.set(socket.id, user);
+
+//         const typingUsers = Array.from(users.values())
+//           .filter((u) => u.typing)
+//           .map((u) => u.nickname);
+//         io.emit("userTyping", typingUsers);
+//       }, 2000);
+//     }
+//   });
+
+//   // Receive location updates
+//   socket.on("location", (location) => {
+//     const user = users.get(socket.id);
+//     if (user) {
+//       user.location = location;
+//       users.set(socket.id, user);
+//       io.emit("updateUserLocations", Array.from(users.values()));
+//     }
+//   });
+
+//   // Handle disconnect
+//   socket.on("disconnect", () => {
+//     users.delete(socket.id);
+//     logToFile(`User disconnected: ${nickname} (${socket.id})`);
+//     console.log(`User disconnected: ${nickname} (${socket.id})`);
+//     broadcastUserCount();
+//   });
+// });
+
+// // Express routes
+// app.get("/", (req, res) => res.send("Hello, World!"));
+// app.use("/api/pyqs", PYQRoutes);
+
+// // for atlas
+// // app.get("/test-db", async (req, res) => {
+// //   try {
+// //     const collections = await mongoose.connection.db.listCollections().toArray();
+// //     res.json({ collections });
+// //   } catch (err) {
+// //     res.status(500).json({ error: err.message });
+// //   }
+// // });
+
+// // Start server
+// server.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
+//   connectDB();
+// });
+
+
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -118,10 +289,7 @@ import { Server } from "socket.io";
 import { Filter } from "bad-words";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
-
-// Optional: Gemini AI import
-// import { GeminiClient } from "gemini-ai"; 
-// const gemini = new GeminiClient({ apiKey: process.env.GEMINI_API_KEY });
+import Chat from "./schema/chat.js";
 
 const app = express();
 
@@ -140,8 +308,8 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-// ----- In-memory Message Store -----
-let messages = []; // last 500 messages
+
+// Maximum messages to fetch
 const MAX_MESSAGES = 500;
 
 // Store all connected users
@@ -169,7 +337,7 @@ function broadcastUserCount() {
   const count = users.size;
   let message;
   if (count <= 1) message = "No one else in the room";
-  else message = `${count} users online`;
+  else message = `${count-1} users online`;
   io.emit("updateUserCount", message);
 }
 
@@ -182,8 +350,18 @@ io.on("connection", (socket) => {
   logToFile(`User connected: ${nickname} (${socket.id})`);
   console.log(`User connected: ${nickname} (${socket.id})`);
 
-  // Send last messages
-  socket.emit("chatHistory", messages);
+  // Send last messages from MongoDB
+  (async () => {
+    try {
+      const recentMessages = await Chat.find({})
+        .sort({ createdAt: -1 })
+        .limit(MAX_MESSAGES)
+        .lean();
+      socket.emit("chatHistory", recentMessages.reverse());
+    } catch (err) {
+      console.error("Error fetching chat history:", err);
+    }
+  })();
 
   // Broadcast user count
   broadcastUserCount();
@@ -192,24 +370,29 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", async (msgText) => {
     if (!msgText || msgText.trim().length === 0) return;
 
-    let cleanText = filter.clean(msgText);
+    const cleanText = filter.clean(msgText);
 
-    // Optional Gemini AI moderation
-    // const response = await gemini.moderateText(msgText);
-    // if (response.flagged) cleanText = "[Message removed due to inappropriate content]";
+    try {
+      // Save message to MongoDB
+      const messageDoc = new Chat({
+        room: "general",      // optional if you want rooms
+        userId: socket.id,
+        message: cleanText
+      });
+      await messageDoc.save();
 
-    const message = {
-      id: uuidv4(),
-      user: nickname,
-      text: cleanText,
-      timestamp: new Date(),
-    };
+      // Emit to all clients
+      io.emit("receiveMessage", {
+        id: messageDoc._id,
+        user: nickname,
+        text: cleanText,
+        timestamp: messageDoc.createdAt
+      });
 
-    messages.push(message);
-    if (messages.length > MAX_MESSAGES) messages.shift();
-
-    io.emit("receiveMessage", message);
-    logToFile(`${nickname}: ${cleanText}`);
+      logToFile(`${nickname}: ${cleanText}`);
+    } catch (err) {
+      console.error("Error saving message:", err);
+    }
   });
 
   // Typing status
@@ -260,7 +443,7 @@ io.on("connection", (socket) => {
 app.get("/", (req, res) => res.send("Hello, World!"));
 app.use("/api/pyqs", PYQRoutes);
 
-// Start server
+// Start server and connect to MongoDB
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   connectDB();
