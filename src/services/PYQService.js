@@ -1,9 +1,10 @@
 // PyQService.js
 //
 import PYQRepository from "../repository/PYQRepository.js";
-import localStorage from "../storage/localStorage.js" 
+import cloudStorage from "../storage/cloudStorage.js";
+// import localStorage from "../storage/localStorage.js" 
 class PYQService {
-  constructor(repository=new PYQRepository(), storage=new localStorage()) {
+  constructor(repository=new PYQRepository(), storage=new cloudStorage()) {
     this.repository = repository; // IPyQRepository
     this.storage = storage;       // IStorage
   }
@@ -11,7 +12,7 @@ class PYQService {
   // Upload a PDF
   async uploadPDF(file, branch, year, semester, subject, course, examType, uploadedBy = "Anonymous") {
     // Step 1: Save file using storage (Local/Cloud)
-    const pdfUrl = await this.storage.uploadFile(file);
+     const storageResult = await this.storage.uploadFile(file); 
 
     // Step 2: Save metadata + url in DB
     return await this.repository.insert({
@@ -22,7 +23,8 @@ class PYQService {
       course,
       examType,
       uploadedBy,
-      pdfUrl,
+      // pdfUrl: storageResult.fileUrl,
+       pdfUrl: storageResult
     });
   }
 

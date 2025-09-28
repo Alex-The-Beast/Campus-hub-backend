@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import { PORT } from "./config/serverConfig.js";
 import connectDB from "./config/dbConfig.js";
 import PYQRoutes from "./routes/PYQRoutes.js";
+import NotesRoute from "./routes/NotesRoute.js";
 import http from "http";
 import { Server } from "socket.io";
 import { Filter } from "bad-words";
@@ -20,7 +21,8 @@ app.use(bodyParser.json());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["https://campus-hub.pages.dev", "http://localhost:5173"],
+    origin: ["https://campus-hub.pages.dev",
+       "http://localhost:5173"],
     methods: ["GET", "POST"],
   },
 });
@@ -228,6 +230,7 @@ io.on("connection", (socket) => {
 // Express routes
 app.get("/", (req, res) => res.send("Hello, World!"));
 app.use("/api/pyqs", PYQRoutes);
+app.use("/api/notes", NotesRoute);
 
 // Start server and connect to MongoDB
 server.listen(PORT, () => {

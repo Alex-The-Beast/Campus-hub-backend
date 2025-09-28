@@ -11,6 +11,7 @@ const pyqController = new PYQController();
 
 // Use multer middleware in route
 router.post("/upload", upload.single("pdf"),(req, res) => pyqController.uploadPyQ(req, res));
+
 router.get("/", (req, res) => pyqController.getPyQs(req, res));
 
 
